@@ -1,0 +1,114 @@
+{
+  "name": "ai-coding-chat",
+  "displayName": "AI Coding Chat",
+  "description": "Chat with any AI (GPT, Claude, Grok, Gemini, etc) in VS Code, with file read/edit capabilities.",
+  "version": "0.0.1",
+  "publisher": "ofrnsb",
+  "engines": {
+    "vscode": ">=1.80.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [
+    "onCommand:ai-coding-chat.openChat"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "ai-coding-chat.openChat",
+        "title": "Open AI Coding Chat",
+        "icon": "$(comment-discussion)"
+      },
+      {
+        "command": "ai-coding-chat.addToChat",
+        "title": "Add to Current Chat"
+      },
+      {
+        "command": "ai-coding-chat.openChatPanel",
+        "title": "Open AI Chat in Side Panel"
+      }
+    ],
+    "menus": {
+      "editor/context": [
+        {
+          "command": "ai-coding-chat.addToChat",
+          "when": "editorHasSelection",
+          "group": "1_modification@99"
+        }
+      ]
+    },
+    "views": {
+      "ai-coding-chat": [
+        {
+          "type": "webview",
+          "id": "ai-coding-chat.chatView",
+          "name": "AI Chat",
+          "when": "true"
+        }
+      ]
+    },
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "ai-coding-chat",
+          "title": "AI Chat",
+          "icon": "$(comment-discussion)"
+        }
+      ]
+    },
+    "configuration": {
+      "type": "object",
+      "title": "loja",
+      "properties": {
+        "aiCodingChat.gptApiKey": {
+          "type": "string",
+          "default": "",
+          "description": "API key for OpenAI GPT (sk-... or Azure key)"
+        },
+        "aiCodingChat.claudeApiKey": {
+          "type": "string",
+          "default": "",
+          "description": "API key for Anthropic Claude (sk-ant-...)"
+        },
+        "aiCodingChat.grokApiKey": {
+          "type": "string",
+          "default": "",
+          "description": "API key for Grok (xapp-... or similar)"
+        },
+        "aiCodingChat.geminiApiKey": {
+          "type": "string",
+          "default": "",
+          "description": "API key for Google Gemini (AIza... or similar)"
+        },
+        "aiCodingChat.activeProvider": {
+          "type": "string",
+          "enum": [
+            "gpt",
+            "claude",
+            "grok",
+            "gemini"
+          ],
+          "default": "gpt",
+          "description": "Select the active AI provider for chat."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "tsc -p ./",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "watch-tests": "tsc -watch -p ./"
+  },
+  "devDependencies": {
+    "@types/mocha": "^10.0.10",
+    "@types/node-fetch": "^2.6.13",
+    "@types/vscode": "^1.80.0",
+    "typescript": "^5.0.0"
+  },
+  "dependencies": {
+    "node-fetch": "^2.7.0"
+  }
+}
