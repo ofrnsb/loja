@@ -773,6 +773,40 @@ class AIChatViewProvider implements vscode.WebviewViewProvider {
           #clear-context {
             margin-left: auto;
           }
+          
+          .file-ref {
+            background: var(--vscode-badge-background);
+            color: var(--vscode-badge-foreground);
+            border: 1px solid var(--vscode-panel-border);
+            border-radius: 4px;
+            padding: 2px 6px;
+            margin: 0 2px;
+            font-size: 11px;
+            display: inline-flex;
+            align-items: center;
+            white-space: nowrap;
+            user-select: none;
+            cursor: default;
+            position: relative;
+          }
+          
+          .file-ref .ref-text {
+            margin-right: 4px;
+          }
+          
+          .file-ref .remove-ref {
+            background: none;
+            border: none;
+            color: var(--vscode-badge-foreground);
+            cursor: pointer;
+            padding: 0;
+            font-size: 10px;
+            opacity: 0.7;
+          }
+          
+          .file-ref .remove-ref:hover {
+            opacity: 1;
+          }
         </style>
       </head>
       <body>
@@ -1018,8 +1052,37 @@ class AIChatViewProvider implements vscode.WebviewViewProvider {
                 console.log("@ detected, query:", atMatch[1]);
                 const query = atMatch[1];
                 vscode.postMessage({ type: "requestFileSuggestions", query, cursorPos });
+              } else if (text.trim() === '' || cursorPos === 0) {
+                // Handle empty input or cursor at beginning
+                console.log('Empty input or cursor at beginning, inserting file at start');
+                
+                const currentSelection = window.getSelection();
+                if (currentSelection.rangeCount > 0) {
+                  const currentRange = currentSelection.getRangeAt(0);
+                  
+                  // Insert at the beginning or current cursor position
+                  if (userInput.childNodes.length === 0) {
+                    // Completely empty, just append
+                    userInput.appendChild(fileSpan);
+                  } else {
+                    // Insert at cursor position
+                    currentRange.insertNode(fileSpan);
+                    currentRange.setStartAfter(fileSpan);
+                    currentRange.setEndAfter(fileSpan);
+                    currentSelection.removeAllRanges();
+                    currentSelection.addRange(currentRange);
+                  }
+                } else {
+                  userInput.appendChild(fileSpan);
+                }
+                
+                // Focus input and add to context
+                userInput.focus();
+                vscode.postMessage({ type: "addFileToContext", filePath: file.path });
+                console.log('File reference inserted in empty input');
+                
               } else {
-                hideFileSuggestions();
+                console.log('No @ mention found and input not empty, cannot insert file');
               }
             }
           }
@@ -1209,67 +1272,200 @@ class AIChatViewProvider implements vscode.WebviewViewProvider {
           });
           
           function insertFileReference(file, cursorPos) {
-            const text = userInput.textContent;
-            const beforeCursor = text.substring(0, cursorPos);
-            const afterCursor = text.substring(cursorPos);
-            const atMatch = beforeCursor.match(/@([^@\s]*)$/);
+            console.log('insertFileReference called with:', file.name, 'at position:', cursorPos);
+            console.log('Current input text:', userInput.textContent);
+            console.log('Input has children:', userInput.childNodes.length);
             
-            if (atMatch) {
-              const beforeAt = beforeCursor.substring(0, atMatch.index);
-              // Remove the @ mention from text since we'll show it as label
-              const insert = file.name;
-              const newText = beforeAt + insert + afterCursor;
+            // Create the file reference element (uneditable like selection)
+            const fileSpan = document.createElement('span');
+            fileSpan.className = 'file-ref';
+            fileSpan.contentEditable = 'false';
+            fileSpan.setAttribute('data-file', file.path);
+            
+            const fileIcon = document.createElement('span');
+            fileIcon.textContent = '📄';
+            fileIcon.style.marginRight = '4px';
+            
+            const fileText = document.createElement('span');
+            fileText.className = 'ref-text';
+            fileText.textContent = file.name;
+            
+            const removeBtn = document.createElement('button');
+            removeBtn.className = 'remove-ref';
+            removeBtn.textContent = '×';
+            removeBtn.onclick = (e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              removeFileReference(file.path);
+            };
+            
+            fileSpan.appendChild(fileIcon);
+            fileSpan.appendChild(fileText);
+            fileSpan.appendChild(removeBtn);
+            
+            // Get current selection
+            const currentSelection = window.getSelection();
+            
+            if (currentSelection.rangeCount > 0) {
+              const currentRange = currentSelection.getRangeAt(0);
               
-              // Replace the content
-              userInput.textContent = newText.trim();
-              userInput.focus();
+              // Check if we're inside the userInput
+              let container = currentRange.commonAncestorContainer;
+              if (container.nodeType === Node.TEXT_NODE) {
+                container = container.parentNode;
+              }
               
-              // Set cursor position after the inserted file name
-              const newCursorPos = beforeAt.length + insert.length;
-              setCursorPosition(userInput, newCursorPos);
-              
-              // Add file content to context if needed
-              vscode.postMessage({ type: "addFileToContext", filePath: file.path });
+              if (userInput.contains(container)) {
+                console.log('Inserting at cursor position');
+                // Insert at cursor position
+                currentRange.insertNode(fileSpan);
+                currentRange.setStartAfter(fileSpan);
+                currentRange.setEndAfter(fileSpan);
+                currentSelection.removeAllRanges();
+                currentSelection.addRange(currentRange);
+              } else {
+                console.log('Cursor not in input, appending to end');
+                // Cursor not in input, append to end
+                userInput.appendChild(fileSpan);
+              }
+            } else {
+              console.log('No selection, appending to end');
+              // No selection, append to end
+              userInput.appendChild(fileSpan);
             }
+            
+            // Focus input
+            userInput.focus();
+            
+            // Add file content to context
+            vscode.postMessage({ type: "addFileToContext", filePath: file.path });
+            
+            console.log('File reference inserted successfully');
           }
           
-          function setCursorPosition(element, position) {
-            const selection = window.getSelection();
-            const range = document.createRange();
+          function removeFileReference(filePath) {
+            // Remove the file span element
+            const fileSpans = userInput.querySelectorAll('.file-ref');
+            fileSpans.forEach(span => {
+              if (span.getAttribute('data-file') === filePath) {
+                span.remove();
+              }
+            });
             
-            const treeWalker = document.createTreeWalker(
+            // Also remove from context if needed
+            // vscode.postMessage({ type: "removeFileFromContext", filePath });
+          }
+          
+          function getTextNodes(element) {
+            const textNodes = [];
+            const walker = document.createTreeWalker(
               element,
               NodeFilter.SHOW_TEXT,
               null,
               false
             );
-            
-            let currentPos = 0;
             let node;
-            while ((node = treeWalker.nextNode())) {
-              const nodeLength = node.textContent.length;
-              if (currentPos + nodeLength >= position) {
-                range.setStart(node, position - currentPos);
-                range.setEnd(node, position - currentPos);
-                break;
-              }
-              currentPos += nodeLength;
+            while (node = walker.nextNode()) {
+              textNodes.push(node);
             }
-            
-            if (!range.startContainer) {
-              // If no text node found, set at end
-              range.selectNodeContents(element);
-              range.collapse(false);
-            }
-            
-            selection.removeAllRanges();
-            selection.addRange(range);
+            return textNodes;
           }
-
-          // Position suggestions
-          const rect = userInput.getBoundingClientRect();
-          suggestions.style.top = (rect.top - suggestions.offsetHeight) + 'px';
-          suggestions.style.left = rect.left + 'px';
+          
+          function hideFileSuggestions() {
+            const existing = document.querySelector('.file-suggestions');
+            if (existing) {
+              existing.remove();
+            }
+          }
+          
+          function showFileSuggestions(files, cursorPos) {
+            console.log('showFileSuggestions called with', files.length, 'files');
+            hideFileSuggestions();
+            
+            if (files.length === 0) {
+              console.log('No files to show');
+              return;
+            }
+            
+            const suggestions = document.createElement('div');
+            suggestions.className = 'file-suggestions';
+            suggestions.style.position = 'absolute';
+            suggestions.style.background = 'var(--vscode-menu-background)';
+            suggestions.style.border = '1px solid var(--vscode-menu-border)';
+            suggestions.style.borderRadius = '4px';
+            suggestions.style.maxHeight = '200px';
+            suggestions.style.overflowY = 'auto';
+            suggestions.style.zIndex = '1000';
+            suggestions.style.minWidth = '250px';
+            suggestions.style.boxShadow = '0 2px 8px rgba(0, 0, 0, 0.15)';
+            
+            files.forEach(file => {
+              const item = document.createElement('div');
+              item.style.padding = '8px 12px';
+              item.style.cursor = 'pointer';
+              item.style.fontSize = '13px';
+              item.style.color = 'var(--vscode-menu-foreground)';
+              item.style.borderBottom = '1px solid var(--vscode-menu-border)';
+              item.style.display = 'flex';
+              item.style.alignItems = 'center';
+              
+              // Create icon span
+              const iconSpan = document.createElement('span');
+              iconSpan.textContent = '📄';
+              iconSpan.style.marginRight = '8px';
+              
+              // Create name span
+              const nameSpan = document.createElement('span');
+              nameSpan.textContent = file.name;
+              nameSpan.style.flex = '1';
+              
+              // Create path span
+              const pathSpan = document.createElement('span');
+              pathSpan.textContent = file.relativePath;
+              pathSpan.style.fontSize = '11px';
+              pathSpan.style.color = 'var(--vscode-descriptionForeground)';
+              pathSpan.style.marginLeft = '8px';
+              
+              item.appendChild(iconSpan);
+              item.appendChild(nameSpan);
+              item.appendChild(pathSpan);
+              item.title = file.path;
+              
+              item.addEventListener('mouseenter', () => {
+                item.style.background = 'var(--vscode-menu-selectionBackground)';
+                item.style.color = 'var(--vscode-menu-selectionForeground)';
+              });
+              item.addEventListener('mouseleave', () => {
+                item.style.background = 'transparent';
+                item.style.color = 'var(--vscode-menu-foreground)';
+              });
+              item.addEventListener('click', () => {
+                insertFileReference(file, cursorPos);
+                hideFileSuggestions();
+              });
+              
+              suggestions.appendChild(item);
+            });
+            
+            // Position suggestions below the input
+            const inputSection = document.getElementById('input-section');
+            const rect = inputSection.getBoundingClientRect();
+            suggestions.style.top = (rect.bottom + 2) + 'px';
+            suggestions.style.left = rect.left + 'px';
+            suggestions.style.width = rect.width + 'px';
+            
+            document.body.appendChild(suggestions);
+            
+            // Add click outside to close
+            setTimeout(() => {
+              document.addEventListener('click', function closeSuggestions(e) {
+                if (!suggestions.contains(e.target) && e.target !== userInput) {
+                  hideFileSuggestions();
+                  document.removeEventListener('click', closeSuggestions);
+                }
+              });
+            }, 100);
+          }
         </script>
       </body>
       </html>
