@@ -86,13 +86,12 @@ class AIChatViewProvider implements vscode.WebviewViewProvider {
 
     webviewView.webview.html = this._getHtmlForWebview();
 
-    // Add welcome message
-    this._messageHistory.push({
-      role: 'system',
-      content:
-        '👋 Welcome! Type @ to add files, right-click code to add selections, or ask anything directly.',
-    });
-    this._postMessageHistory();
+    const config = vscode.workspace.getConfiguration();
+    if (config.get<boolean>('ai-coding-chat.welcomeNotification', true)) {
+      vscode.window.showInformationMessage(
+        '👋 Welcome! Type @ to add files, right-click code to add selections, or ask anything directly.'
+      );
+    }
 
     // Listen for messages from the webview
     webviewView.webview.onDidReceiveMessage(async (message) => {
@@ -100,7 +99,7 @@ class AIChatViewProvider implements vscode.WebviewViewProvider {
         await vscode.workspace
           .getConfiguration()
           .update(
-            'aiCodingChat.activeProvider',
+            'loja.activeProvider',
             message.provider,
             vscode.ConfigurationTarget.Global
           );
@@ -244,7 +243,7 @@ class AIChatViewProvider implements vscode.WebviewViewProvider {
       } else if (message.type === 'setProvider') {
         const config = vscode.workspace.getConfiguration();
         await config.update(
-          'aiCodingChat.activeProvider',
+          'loja.activeProvider',
           message.provider,
           vscode.ConfigurationTarget.Global
         );
@@ -633,6 +632,7 @@ class AIChatViewProvider implements vscode.WebviewViewProvider {
             min-height: 20px;
             max-height: 100px;
             overflow-y: auto;
+            outline: none;
           }
           
           #user-input:focus {
@@ -644,98 +644,66 @@ class AIChatViewProvider implements vscode.WebviewViewProvider {
             color: var(--vscode-input-placeholderForeground);
           }
           
-          .btn {
-            padding: 6px 12px;
-            border: none;
-            border-radius: 4px;
-            font-size: 12px;
-            font-weight: 500;
-            cursor: pointer;
-            transition: background-color 0.15s ease;
-            white-space: nowrap;
-            display: inline-flex;
-            align-items: center;
-            gap: 4px;
-          }
-          
-          .btn-primary {
-            background: var(--vscode-button-background);
-            color: var(--vscode-button-foreground);
-          }
-          
-          .btn-primary:hover {
-            background: var(--vscode-button-hoverBackground);
-          }
-          
-          .btn-secondary {
-            background: var(--vscode-button-secondaryBackground);
-            color: var(--vscode-button-secondaryForeground);
-            border: 1px solid var(--vscode-panel-border);
-          }
-          
-          .btn-secondary:hover {
-            background: var(--vscode-button-secondaryHoverBackground);
-          }
-          
-          .btn:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-          }
-          
-          .btn-group {
-            display: flex;
-            gap: 6px;
-            flex-wrap: wrap;
-          }
-          
-          #chat-outer { 
-            display: flex;
-            flex-direction: column;
-            flex: 1;
-            min-height: 0;
-            overflow: hidden;
-          }
-          
-          #chat-container { 
+          /* New styles for contentEditable input */
+          #user-input-editable {
             flex: 1;
             padding: 8px 12px;
+            font-size: 13px;
+            background: var(--vscode-input-background);
+            color: var(--vscode-input-foreground);
+            border: 1px solid var(--vscode-input-border);
+            border-radius: 4px;
+            min-height: 20px;
+            max-height: 100px;
             overflow-y: auto;
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-            background: var(--vscode-background);
-            min-height: 0;
+            outline: none;
+            word-wrap: break-word;
           }
           
-          pre, code { 
-            background: var(--vscode-textCodeBlock-background);
-            color: var(--vscode-textPreformat-foreground);
+          #user-input-editable:focus {
+            outline: 1px solid var(--vscode-focusBorder);
+            outline-offset: -1px;
+          }
+          
+          #user-input-editable:empty:before {
+            content: attr(placeholder);
+            color: var(--vscode-input-placeholderForeground);
+            pointer-events: none;
+          }
+          
+          /* Style for inline reference badges */
+          .inline-ref {
+            background: var(--vscode-badge-background);
+            color: var(--vscode-badge-foreground);
+            border: 1px solid var(--vscode-panel-border);
             border-radius: 4px;
             padding: 2px 6px;
-            font-family: var(--vscode-editor-font-family, 'Courier New', monospace);
+            margin: 0 2px;
+            font-size: 11px;
+            display: inline-block;
+            white-space: nowrap;
+            user-select: none;
+            cursor: default;
+            position: relative;
           }
           
-          pre {
-            padding: 8px 12px;
-            overflow-x: auto;
-            border: 1px solid var(--vscode-panel-border);
+          .inline-ref .ref-text {
+            display: inline;
           }
           
-          .apply-btn {
-            margin-top: 8px;
-            background: var(--vscode-button-background);
-            color: var(--vscode-button-foreground);
+          .inline-ref .remove-ref {
+            background: none;
             border: none;
-            border-radius: 4px;
-            padding: 6px 12px;
+            color: var(--vscode-badge-foreground);
             cursor: pointer;
-            font-size: 12px;
-            font-weight: 500;
-            transition: background-color 0.15s ease;
+            padding: 0;
+            margin-left: 4px;
+            font-size: 10px;
+            opacity: 0.7;
           }
           
-          .apply-btn:hover {
-            background: var(--vscode-button-hoverBackground);
+          .inline-ref .remove-ref:hover {
+            opacity: 1;
           }
           
           /* Scrollbar styling */
@@ -831,7 +799,7 @@ class AIChatViewProvider implements vscode.WebviewViewProvider {
           <div id="input-section">
             <div id="context-bubbles" class="context-bubbles"></div>
             <div id="input-row">
-              <textarea id="user-input" placeholder="Type @ to add files or ask anything..." rows="1"></textarea>
+              <div id="user-input-editable" contenteditable="true" placeholder="Type @ to add files or ask anything..."></div>
               <button id="send-btn" class="btn btn-primary">Send</button>
             </div>
           </div>
@@ -852,7 +820,7 @@ class AIChatViewProvider implements vscode.WebviewViewProvider {
             
             console.log('[AIChat Webview] Getting DOM elements...');
             chatContainer = document.getElementById("chat-container");
-            userInput = document.getElementById("user-input");
+            userInput = document.getElementById("user-input-editable");
             sendBtn = document.getElementById("send-btn");
             providerSelect = document.getElementById("provider-select");
             contextBubblesContainer = document.getElementById("context-bubbles");
@@ -899,10 +867,10 @@ class AIChatViewProvider implements vscode.WebviewViewProvider {
           let inlineReferences = new Map();
 
           function sendMessage() {
-            const text = userInput.value.trim();
+            const text = userInput.textContent.trim();
             if (text) {
               vscode.postMessage({ type: "userMessage", text, contextItems, inlineReferences });
-              userInput.value = '';
+              userInput.innerHTML = '';
               inlineReferences.clear();
               contextItems = [];
               renderContextBubbles();
@@ -910,8 +878,9 @@ class AIChatViewProvider implements vscode.WebviewViewProvider {
           }
 
           function autoResize() {
+            // For contentEditable div, we can adjust height based on scrollHeight
             userInput.style.height = 'auto';
-            userInput.style.height = userInput.scrollHeight + 'px';
+            userInput.style.height = Math.min(userInput.scrollHeight, 100) + 'px';
           }
 
           window.addEventListener('message', event => {
@@ -1034,20 +1003,48 @@ class AIChatViewProvider implements vscode.WebviewViewProvider {
           }
 
           // Handle @ mentions for file suggestions
-          function handleAtMention(text, cursorPos) {
-            console.log("handleAtMention called:", text, cursorPos);
-            const beforeCursor = text.substring(0, cursorPos);
-            const atMatch = beforeCursor.match(/@([^@\s]*)$/);
-            
-            if (atMatch) {
-              console.log("@ detected, query:", atMatch[1]);
-              const query = atMatch[1];
-              vscode.postMessage({ type: "requestFileSuggestions", query, cursorPos });
-            } else {
-              hideFileSuggestions();
+          function handleAtMention() {
+            const text = userInput.textContent;
+            const selection = window.getSelection();
+            if (selection.rangeCount > 0) {
+              const range = selection.getRangeAt(0);
+              const cursorPos = getCursorPosition(userInput, range);
+              
+              console.log("handleAtMention called:", text, cursorPos);
+              const beforeCursor = text.substring(0, cursorPos);
+              const atMatch = beforeCursor.match(/@([^@\s]*)$/);
+              
+              if (atMatch) {
+                console.log("@ detected, query:", atMatch[1]);
+                const query = atMatch[1];
+                vscode.postMessage({ type: "requestFileSuggestions", query, cursorPos });
+              } else {
+                hideFileSuggestions();
+              }
             }
           }
-
+          
+          function getCursorPosition(element, range) {
+            const treeWalker = document.createTreeWalker(
+              element,
+              NodeFilter.SHOW_TEXT,
+              null,
+              false
+            );
+            
+            let position = 0;
+            let node;
+            while ((node = treeWalker.nextNode())) {
+              if (node === range.startContainer) {
+                position += range.startOffset;
+                break;
+              } else {
+                position += node.textContent.length;
+              }
+            }
+            return position;
+          }
+          
           // Context bubbles management
           function addContextBubble(item) {
             // Check if already exists
@@ -1118,84 +1115,101 @@ class AIChatViewProvider implements vscode.WebviewViewProvider {
             });
             
             console.log('[AIChat Webview] Stored reference:', reference);
-            console.log('[AIChat Webview] Current input value:', userInput.value);
             
-            // Insert reference into input at cursor position
-            const cursorPos = userInput.selectionStart;
-            const text = userInput.value;
-            const beforeCursor = text.substring(0, cursorPos);
-            const afterCursor = text.substring(cursorPos);
+            // Create the inline reference element
+            const refSpan = document.createElement('span');
+            refSpan.className = 'inline-ref';
+            refSpan.contentEditable = 'false';
+            refSpan.setAttribute('data-reference', reference);
             
-            // Add space before reference if needed
-            const needSpaceBefore = beforeCursor.length > 0 && !beforeCursor.endsWith(' ');
-            const spaceBefore = needSpaceBefore ? ' ' : '';
+            const refText = document.createElement('span');
+            refText.className = 'ref-text';
+            refText.textContent = reference;
             
-            const newText = beforeCursor + spaceBefore + reference + ' ' + afterCursor;
-            userInput.value = newText;
+            const removeBtn = document.createElement('button');
+            removeBtn.className = 'remove-ref';
+            removeBtn.textContent = '×';
+            removeBtn.onclick = (e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              removeInlineReference(reference);
+            };
             
-            console.log('[AIChat Webview] New input value:', userInput.value);
+            refSpan.appendChild(refText);
+            refSpan.appendChild(removeBtn);
             
-            // Set cursor position after the reference
-            const newCursorPos = cursorPos + spaceBefore.length + reference.length + 1;
-            userInput.setSelectionRange(newCursorPos, newCursorPos);
+            // Insert the reference at cursor position or at end
+            const selection = window.getSelection();
+            if (selection.rangeCount > 0) {
+              const range = selection.getRangeAt(0);
+              
+              // Check if we're inside the userInput
+              let container = range.commonAncestorContainer;
+              if (container.nodeType === Node.TEXT_NODE) {
+                container = container.parentNode;
+              }
+              
+              if (userInput.contains(container)) {
+                // Insert before the current selection
+                range.insertNode(refSpan);
+                range.setStartAfter(refSpan);
+                range.setEndAfter(refSpan);
+                selection.removeAllRanges();
+                selection.addRange(range);
+              } else {
+                // Append to end
+                userInput.appendChild(refSpan);
+                // Move cursor after the inserted element
+                const newRange = document.createRange();
+                newRange.setStartAfter(refSpan);
+                newRange.setEndAfter(refSpan);
+                selection.removeAllRanges();
+                selection.addRange(newRange);
+              }
+            } else {
+              // No selection, append to end
+              userInput.appendChild(refSpan);
+            }
             
-            // Focus input and auto-resize
+            // Focus input
             userInput.focus();
             autoResize();
             
             console.log('[AIChat Webview] Inserted inline reference:', reference);
           }
           
-          function hideFileSuggestions() {
-            const existing = document.querySelector('.file-suggestions');
-            if (existing) {
-              existing.remove();
-            }
+          function removeInlineReference(reference) {
+            // Remove from inlineReferences map
+            inlineReferences.delete(reference);
+            
+            // Remove the span element
+            const refSpans = userInput.querySelectorAll('.inline-ref');
+            refSpans.forEach(span => {
+              if (span.getAttribute('data-reference') === reference) {
+                span.remove();
+              }
+            });
           }
           
-          function showFileSuggestions(files, cursorPos) {
-            console.log('showFileSuggestions called with', files.length, 'files');
-            hideFileSuggestions();
-            
-            if (files.length === 0) {
-              console.log('No files to show');
-              return;
+          providerSelect.addEventListener("change", (e) => {
+            vscode.postMessage({ type: "setProvider", provider: e.target.value });
+          });
+          
+          sendBtn.addEventListener("click", sendMessage);
+          
+          // Auto-resize and handle @ mentions
+          userInput.addEventListener("input", (e) => {
+            handleAtMention();
+          });
+          userInput.addEventListener("keydown", (e) => {
+            if (e.key === "Enter" && !e.shiftKey) {
+              e.preventDefault();
+              sendMessage();
             }
-            
-            const suggestions = document.createElement('div');
-            suggestions.className = 'file-suggestions';
-            suggestions.style.cssText = 'position: absolute; background: var(--vscode-menu-background); border: 1px solid var(--vscode-menu-border); border-radius: 4px; max-height: 200px; overflow-y: auto; z-index: 1000; min-width: 200px;';
-            
-            files.forEach(file => {
-              const item = document.createElement('div');
-              item.style.cssText = 'padding: 8px 12px; cursor: pointer; font-size: 12px; color: var(--vscode-menu-foreground);';
-              item.textContent = file.name;
-              item.title = file.path;
-              
-              item.addEventListener('mouseenter', () => {
-                item.style.background = 'var(--vscode-menu-selectionBackground)';
-              });
-              item.addEventListener('mouseleave', () => {
-                item.style.background = 'transparent';
-              });
-              item.addEventListener('click', () => {
-                insertFileReference(file, cursorPos);
-                hideFileSuggestions();
-              });
-              
-              suggestions.appendChild(item);
-            });
-            
-            // Position suggestions
-            const rect = userInput.getBoundingClientRect();
-            suggestions.style.top = (rect.top - suggestions.offsetHeight) + 'px';
-            suggestions.style.left = rect.left + 'px';
-            
-            document.body.appendChild(suggestions);
-          }
+          });
           
           function insertFileReference(file, cursorPos) {
-            const text = userInput.value;
+            const text = userInput.textContent;
             const beforeCursor = text.substring(0, cursorPos);
             const afterCursor = text.substring(cursorPos);
             const atMatch = beforeCursor.match(/@([^@\s]*)$/);
@@ -1205,40 +1219,57 @@ class AIChatViewProvider implements vscode.WebviewViewProvider {
               // Remove the @ mention from text since we'll show it as label
               const insert = file.name;
               const newText = beforeAt + insert + afterCursor;
-              userInput.value = newText.trim();
+              
+              // Replace the content
+              userInput.textContent = newText.trim();
               userInput.focus();
+              
               // Set cursor position after the inserted file name
               const newCursorPos = beforeAt.length + insert.length;
-              userInput.setSelectionRange(newCursorPos, newCursorPos);
-              // Optionally, still add as context bubble if needed (or skip)
-              // addContextBubble({
-              //   type: 'file',
-              //   name: file.name,
-              //   path: file.path,
-              //   relativePath: file.relativePath || file.path
-              // });
+              setCursorPosition(userInput, newCursorPos);
+              
               // Add file content to context if needed
               vscode.postMessage({ type: "addFileToContext", filePath: file.path });
             }
           }
-
-          providerSelect.addEventListener("change", (e) => {
-            vscode.postMessage({ type: "setProvider", provider: e.target.value });
-          });
           
-          sendBtn.addEventListener("click", sendMessage);
-          
-          // Auto-resize textarea and handle Enter key
-          userInput.addEventListener("input", (e) => {
-            autoResize();
-            handleAtMention(e.target.value, e.target.selectionStart);
-          });
-          userInput.addEventListener("keydown", (e) => {
-            if (e.key === "Enter" && !e.shiftKey) {
-              e.preventDefault();
-              sendMessage();
+          function setCursorPosition(element, position) {
+            const selection = window.getSelection();
+            const range = document.createRange();
+            
+            const treeWalker = document.createTreeWalker(
+              element,
+              NodeFilter.SHOW_TEXT,
+              null,
+              false
+            );
+            
+            let currentPos = 0;
+            let node;
+            while ((node = treeWalker.nextNode())) {
+              const nodeLength = node.textContent.length;
+              if (currentPos + nodeLength >= position) {
+                range.setStart(node, position - currentPos);
+                range.setEnd(node, position - currentPos);
+                break;
+              }
+              currentPos += nodeLength;
             }
-          });
+            
+            if (!range.startContainer) {
+              // If no text node found, set at end
+              range.selectNodeContents(element);
+              range.collapse(false);
+            }
+            
+            selection.removeAllRanges();
+            selection.addRange(range);
+          }
+
+          // Position suggestions
+          const rect = userInput.getBoundingClientRect();
+          suggestions.style.top = (rect.top - suggestions.offsetHeight) + 'px';
+          suggestions.style.left = rect.left + 'px';
         </script>
       </body>
       </html>
@@ -1276,7 +1307,7 @@ class AIChatViewProvider implements vscode.WebviewViewProvider {
     }
 
     const config = vscode.workspace.getConfiguration();
-    const provider = config.get<string>('aiCodingChat.activeProvider', 'gpt');
+    const provider = config.get<string>('loja.activeProvider', 'gpt');
     if (provider === 'gpt') {
       return this._callOpenAIGPT(enhancedUserText);
     } else if (provider === 'claude') {
@@ -1481,7 +1512,7 @@ class AIChatViewProvider implements vscode.WebviewViewProvider {
   // OpenAI GPT integration
   private async _callOpenAIGPT(userText: string): Promise<string> {
     const config = vscode.workspace.getConfiguration();
-    const apiKey = config.get<string>('aiCodingChat.gptApiKey', '');
+    const apiKey = config.get<string>('loja.gptApiKey', '');
     if (!apiKey) {
       throw new Error(
         'No OpenAI API key set. Please add it in the extension settings.'
@@ -1524,7 +1555,7 @@ class AIChatViewProvider implements vscode.WebviewViewProvider {
   private async _callClaudeStub(userText: string): Promise<string> {
     // Real implementation
     const config = vscode.workspace.getConfiguration();
-    const apiKey = config.get<string>('aiCodingChat.claudeApiKey', '');
+    const apiKey = config.get<string>('loja.claudeApiKey', '');
     if (!apiKey) {
       throw new Error(
         'No Claude API key set. Please add it in the extension settings.'
@@ -1560,7 +1591,7 @@ class AIChatViewProvider implements vscode.WebviewViewProvider {
   // Grok (xAI) integration
   private async _callGrokStub(userText: string): Promise<string> {
     const config = vscode.workspace.getConfiguration();
-    const apiKey = config.get<string>('aiCodingChat.grokApiKey', '');
+    const apiKey = config.get<string>('loja.grokApiKey', '');
     if (!apiKey) {
       throw new Error(
         'No Grok API key set. Please add it in the extension settings.'
@@ -1601,7 +1632,7 @@ class AIChatViewProvider implements vscode.WebviewViewProvider {
   // Gemini (Google) integration
   private async _callGeminiStub(userText: string): Promise<string> {
     const config = vscode.workspace.getConfiguration();
-    const apiKey = config.get<string>('aiCodingChat.geminiApiKey', '');
+    const apiKey = config.get<string>('loja.geminiApiKey', '');
     if (!apiKey) {
       throw new Error(
         'No Gemini API key set. Please add it in the extension settings.'
