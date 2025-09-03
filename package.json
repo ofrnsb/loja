@@ -1,6 +1,6 @@
 {
   "name": "ai-coding-chat",
-  "displayName": "AI Coding Chat",
+  "displayName": "Loja",
   "description": "Chat with any AI (GPT, Claude, Grok, Gemini, etc) in VS Code, with file read/edit capabilities.",
   "version": "0.0.1",
   "publisher": "ofrnsb",

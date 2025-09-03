@@ -8,10 +8,6 @@ const fetch = require('node-fetch');
 // This method is called when your extension is activated
 // Your extension is activated the very first time the command is executed
 export function activate(context: vscode.ExtensionContext) {
-  console.log(
-    'Congratulations, your extension "AI Coding Chat" is now active!'
-  );
-
   // Register webview view provider for sidebar
   const provider = new AIChatViewProvider(context.extensionUri);
   context.subscriptions.push(
@@ -43,7 +39,6 @@ export function activate(context: vscode.ExtensionContext) {
     'ai-coding-chat.addToChat',
     async () => {
       console.log('[DEBUG] Command triggered');
-      vscode.window.showInformationMessage('Command works!');
       await provider.addSelectionToChat();
     }
   );
@@ -89,7 +84,7 @@ class AIChatViewProvider implements vscode.WebviewViewProvider {
     const config = vscode.workspace.getConfiguration();
     if (config.get<boolean>('ai-coding-chat.welcomeNotification', true)) {
       vscode.window.showInformationMessage(
-        '👋 Welcome! Type @ to add files, right-click code to add selections, or ask anything directly.'
+        '👋 Welcome to Loja! Ask anything directly to any preferred AI. Type @ to add files, right-click code to add selections.                                                                                                                                                                                                 '
       );
     }
 
@@ -103,9 +98,6 @@ class AIChatViewProvider implements vscode.WebviewViewProvider {
             message.provider,
             vscode.ConfigurationTarget.Global
           );
-        vscode.window.showInformationMessage(
-          `AI provider set to ${message.provider}`
-        );
       } else if (message.type === 'userMessage') {
         await this._handleUserMessage(message);
       } else if (message.type === 'previewEdit') {
@@ -157,7 +149,6 @@ class AIChatViewProvider implements vscode.WebviewViewProvider {
   // Public method to add selection to chat from context menu
   public async addSelectionToChat() {
     console.log('[DEBUG] addSelectionToChat called');
-    vscode.window.showInformationMessage('Add Selection triggered!');
 
     const editor = vscode.window.activeTextEditor;
     if (!editor || editor.selection.isEmpty) {
@@ -481,11 +472,14 @@ class AIChatViewProvider implements vscode.WebviewViewProvider {
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline' 'unsafe-eval'; img-src data: https:;">
-        <title>AI Coding Chat</title>
+        <title>Loja</title>
         <style>
           :root {
-            --vscode-font-family: var(--vscode-font-family);
-            --vscode-font-size: var(--vscode-font-size);
+            --vscode-font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            --vscode-font-size: 13px;
+            --vscode-font-weight-normal: 400;
+            --vscode-font-weight-medium: 500;
+            --vscode-font-weight-semibold: 600;
             --vscode-foreground: var(--vscode-foreground);
             --vscode-background: var(--vscode-sideBar-background);
             --vscode-input-background: var(--vscode-input-background);
@@ -501,258 +495,313 @@ class AIChatViewProvider implements vscode.WebviewViewProvider {
             --vscode-textLink-foreground: var(--vscode-textLink-foreground);
             --vscode-badge-background: var(--vscode-badge-background);
             --vscode-badge-foreground: var(--vscode-badge-foreground);
+            
+            /* Enhanced color palette */
+            --primary-color: #007acc;
+            --primary-hover: #0056b3;
+            --secondary-color: #6c757d;
+            --success-color: #28a745;
+            --warning-color: #ffc107;
+            --error-color: #dc3545;
+            --info-color: #17a2b8;
+            
+            /* Spacing system */
+            --spacing-xs: 4px;
+            --spacing-sm: 8px;
+            --spacing-md: 12px;
+            --spacing-lg: 16px;
+            --spacing-xl: 20px;
+            --spacing-xxl: 24px;
+            
+            /* Border radius */
+            --radius-sm: 4px;
+            --radius-md: 6px;
+            --radius-lg: 8px;
+            --radius-xl: 12px;
+            
+            /* Shadows */
+            --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.1);
+            --shadow-md: 0 2px 4px rgba(0, 0, 0, 0.1);
+            --shadow-lg: 0 4px 8px rgba(0, 0, 0, 0.15);
+            --shadow-xl: 0 8px 16px rgba(0, 0, 0, 0.2);
+            
+            /* Transitions */
+            --transition-fast: 0.15s ease;
+            --transition-normal: 0.25s ease;
+            --transition-slow: 0.35s ease;
           }
           
           * {
             box-sizing: border-box;
+            margin: 0;
+            padding: 0;
           }
           
           body { 
-            font-family: var(--vscode-font-family, 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif);
-            font-size: var(--vscode-font-size, 13px);
+            font-family: var(--vscode-font-family);
+            font-size: var(--vscode-font-size);
+            font-weight: var(--vscode-font-weight-normal);
+            line-height: 1.5;
             margin: 0; 
             padding: 0;
             background: var(--vscode-background);
             color: var(--vscode-foreground);
-            height: 100%;
+            height: 100vh;
             overflow: hidden;
             display: flex;
             flex-direction: column;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
           }
           
+          /* Header */
           #header { 
-            padding: 12px 16px;
-            background: var(--vscode-sideBarSectionHeader-background);
+            padding: var(--spacing-lg) var(--spacing-xl);
             border-bottom: 1px solid var(--vscode-panel-border);
+            background: var(--vscode-background);
             display: flex;
             align-items: center;
-            gap: 12px;
+            gap: var(--spacing-md);
             flex-wrap: wrap;
+            position: relative;
+            z-index: 10;
+            box-shadow: var(--shadow-sm);
+          }
+          
+          #header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, var(--vscode-panel-border), transparent);
           }
           
           #header label {
             display: flex;
             align-items: center;
-            gap: 6px;
+            gap: var(--spacing-sm);
             font-size: 12px;
+            font-weight: var(--vscode-font-weight-medium);
             color: var(--vscode-foreground);
+            opacity: 0.8;
           }
           
           #provider-select {
             background: var(--vscode-input-background);
             color: var(--vscode-input-foreground);
             border: 1px solid var(--vscode-input-border);
-            border-radius: 3px;
-            padding: 4px 8px;
+            border-radius: var(--radius-md);
+            padding: var(--spacing-xs) var(--spacing-md);
             font-size: 12px;
-            min-width: 80px;
+            font-weight: var(--vscode-font-weight-medium);
+            min-width: 100px;
+            cursor: pointer;
+            transition: all var(--transition-fast);
+            outline: none;
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e");
+            background-position: right var(--spacing-xs) center;
+            background-repeat: no-repeat;
+            background-size: 16px;
+            padding-right: 32px;
+          }
+          
+          #provider-select:hover {
+            border-color: var(--primary-color);
+            box-shadow: var(--shadow-sm);
           }
           
           #provider-select:focus {
-            outline: 1px solid var(--vscode-focusBorder);
-            outline-offset: -1px;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 2px rgba(0, 122, 204, 0.2);
+            outline: none;
           }
           
-          #include-context {
-            margin-right: 4px;
-          }
-          
-          .message { 
-            margin: 0; 
-            padding: 8px 12px;
-            border-radius: 8px;
-            max-width: 85%;
-            word-wrap: break-word;
-            font-size: 13px;
-            line-height: 1.4;
+          /* Chat Container */
+          #chat-outer {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
             position: relative;
           }
           
+          #chat-container {
+            flex: 1;
+            overflow-y: auto;
+            padding: var(--spacing-lg);
+            padding-bottom: var(--spacing-xxl);
+            scroll-behavior: smooth;
+          }
+          
+          #chat-container::-webkit-scrollbar {
+            width: 6px;
+          }
+          
+          #chat-container::-webkit-scrollbar-track {
+            background: transparent;
+          }
+          
+          #chat-container::-webkit-scrollbar-thumb {
+            background: var(--vscode-panel-border);
+            border-radius: 3px;
+            transition: background var(--transition-fast);
+          }
+          
+          #chat-container::-webkit-scrollbar-thumb:hover {
+            background: var(--secondary-color);
+          }
+          
+          /* Message Styles */
+          .message { 
+            margin-bottom: var(--spacing-lg);
+            padding: var(--spacing-md) var(--spacing-lg);
+            border-radius: var(--radius-lg);
+            max-width: 85%;
+            word-wrap: break-word;
+            font-size: 13px;
+            line-height: 1.6;
+            position: relative;
+            animation: messageSlideIn 0.3s ease-out;
+            box-shadow: var(--shadow-sm);
+            border: 1px solid transparent;
+          }
+          
+          @keyframes messageSlideIn {
+            from {
+              opacity: 0;
+              transform: translateY(10px);
+            }
+            to {
+              opacity: 1;
+              transform: translateY(0);
+            }
+          }
+          
           .user { 
-            background: var(--vscode-textBlockQuote-background, #007acc20);
-            border: 1px solid var(--vscode-textBlockQuote-border, #007acc40);
+            background: linear-gradient(135deg, var(--primary-color), var(--primary-hover));
+            border-color: var(--primary-color);
+            color: white;
             align-self: flex-end;
             margin-left: auto;
+            border-bottom-right-radius: var(--radius-sm);
           }
           
           .ai { 
-            background: var(--vscode-textCodeBlock-background, #1e1e1e10);
-            border: 1px solid var(--vscode-panel-border, #333);
+            background: var(--vscode-input-background);
+            border-color: var(--vscode-panel-border);
+            color: var(--vscode-foreground);
             align-self: flex-start;
+            border-bottom-left-radius: var(--radius-sm);
           }
           
           .loading { 
-            background: var(--vscode-notificationsInfoIcon-foreground, #3794ff20);
-            border: 1px solid var(--vscode-notificationsInfoIcon-foreground, #3794ff40);
-            color: var(--vscode-notificationsInfoIcon-foreground, #3794ff);
+            background: linear-gradient(135deg, var(--info-color), #138496);
+            border-color: var(--info-color);
+            color: white;
             font-style: italic;
             align-self: flex-start;
+            border-bottom-left-radius: var(--radius-sm);
+            animation: loadingPulse 1.5s ease-in-out infinite;
+          }
+          
+          @keyframes loadingPulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
           }
           
           .error { 
-            background: var(--vscode-errorBackground, #f48771);
-            border: 1px solid var(--vscode-errorBorder, #e74c3c);
-            color: var(--vscode-errorForeground, #ffffff);
+            background: linear-gradient(135deg, var(--error-color), #c82333);
+            border-color: var(--error-color);
+            color: white;
             align-self: flex-start;
+            border-bottom-left-radius: var(--radius-sm);
           }
           
           .system { 
-            background: var(--vscode-badge-background, #4d4d4d);
-            border: 1px solid var(--vscode-panel-border, #333);
-            color: var(--vscode-badge-foreground, #ffffff);
+            background: linear-gradient(135deg, var(--secondary-color), #5a6268);
+            border-color: var(--secondary-color);
+            color: white;
             font-style: italic;
             align-self: flex-start;
             font-size: 12px;
+            border-bottom-left-radius: var(--radius-sm);
           }
           
+          /* Apply buttons */
+          .apply-btn {
+            background: var(--success-color);
+            color: white;
+            border: none;
+            border-radius: var(--radius-md);
+            padding: var(--spacing-xs) var(--spacing-md);
+            font-size: 11px;
+            font-weight: var(--vscode-font-weight-medium);
+            cursor: pointer;
+            margin-top: var(--spacing-sm);
+            margin-right: var(--spacing-sm);
+            transition: all var(--transition-fast);
+            box-shadow: var(--shadow-sm);
+          }
+          
+          .apply-btn:hover {
+            background: #218838;
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-md);
+          }
+          
+          /* Input Section */
           #input-section {
             border-top: 1px solid var(--vscode-panel-border);
             background: var(--vscode-background);
             position: sticky;
             bottom: 0;
             z-index: 10;
+            box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.1);
           }
           
           #input-row { 
             display: flex;
-            padding: 12px;
-            gap: 8px;
-            align-items: center;
+            padding: var(--spacing-lg);
+            gap: var(--spacing-md);
+            align-items: flex-end;
           }
           
-          #user-input { 
-            flex: 1;
-            padding: 8px 12px;
-            font-size: 13px;
-            background: var(--vscode-input-background);
-            color: var(--vscode-input-foreground);
-            border: 1px solid var(--vscode-input-border);
-            border-radius: 4px;
-            resize: none;
-            min-height: 20px;
-            max-height: 100px;
-            overflow-y: auto;
-            outline: none;
-          }
-          
-          #user-input:focus {
-            outline: 1px solid var(--vscode-focusBorder);
-            outline-offset: -1px;
-          }
-          
-          #user-input::placeholder {
-            color: var(--vscode-input-placeholderForeground);
-          }
-          
-          /* New styles for contentEditable input */
-          #user-input-editable {
-            flex: 1;
-            padding: 8px 12px;
-            font-size: 13px;
-            background: var(--vscode-input-background);
-            color: var(--vscode-input-foreground);
-            border: 1px solid var(--vscode-input-border);
-            border-radius: 4px;
-            min-height: 20px;
-            max-height: 100px;
-            overflow-y: auto;
-            outline: none;
-            word-wrap: break-word;
-          }
-          
-          #user-input-editable:focus {
-            outline: 1px solid var(--vscode-focusBorder);
-            outline-offset: -1px;
-          }
-          
-          #user-input-editable:empty:before {
-            content: attr(placeholder);
-            color: var(--vscode-input-placeholderForeground);
-            pointer-events: none;
-          }
-          
-          /* Style for inline reference badges */
-          .inline-ref {
-            background: var(--vscode-badge-background);
-            color: var(--vscode-badge-foreground);
-            border: 1px solid var(--vscode-panel-border);
-            border-radius: 4px;
-            padding: 2px 6px;
-            margin: 0 2px;
-            font-size: 11px;
-            display: inline-block;
-            white-space: nowrap;
-            user-select: none;
-            cursor: default;
-            position: relative;
-          }
-          
-          .inline-ref .ref-text {
-            display: inline;
-          }
-          
-          .inline-ref .remove-ref {
-            background: none;
-            border: none;
-            color: var(--vscode-badge-foreground);
-            cursor: pointer;
-            padding: 0;
-            margin-left: 4px;
-            font-size: 10px;
-            opacity: 0.7;
-          }
-          
-          .inline-ref .remove-ref:hover {
-            opacity: 1;
-          }
-          
-          /* Scrollbar styling */
-          ::-webkit-scrollbar {
-            width: 8px;
-          }
-          
-          ::-webkit-scrollbar-track {
-            background: var(--vscode-scrollbarSlider-background);
-          }
-          
-          ::-webkit-scrollbar-thumb {
-            background: var(--vscode-scrollbarSlider-background);
-            border-radius: 4px;
-          }
-          
-          ::-webkit-scrollbar-thumb:hover {
-            background: var(--vscode-scrollbarSlider-hoverBackground);
-          }
-          
-          /* Icon styles */
-          .codicon {
-            font-family: codicon;
-            font-size: 14px;
-          }
-          
-          /* Context bubbles */
+          /* Context Bubbles */
           .context-bubbles {
             display: flex;
             flex-wrap: wrap;
-            gap: 4px;
-            margin-bottom: 8px;
-            padding: 0 12px;
+            gap: var(--spacing-sm);
+            margin-bottom: var(--spacing-md);
+            padding: 0 var(--spacing-lg);
           }
           
           .context-bubble {
             background: var(--vscode-button-secondaryBackground);
             color: var(--vscode-button-secondaryForeground);
             border: 1px solid var(--vscode-panel-border);
-            border-radius: 12px;
-            padding: 2px 8px;
+            border-radius: var(--radius-xl);
+            padding: var(--spacing-xs) var(--spacing-md);
             font-size: 11px;
+            font-weight: var(--vscode-font-weight-medium);
             display: flex;
             align-items: center;
-            gap: 4px;
-            max-width: 200px;
+            gap: var(--spacing-xs);
+            max-width: 250px;
             overflow: hidden;
             text-overflow: ellipsis;
             white-space: nowrap;
+            transition: all var(--transition-fast);
+            cursor: default;
+            box-shadow: var(--shadow-sm);
+          }
+          
+          .context-bubble:hover {
+            background: var(--vscode-button-secondaryHoverBackground);
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-md);
           }
           
           .context-bubble .remove-btn {
@@ -761,57 +810,254 @@ class AIChatViewProvider implements vscode.WebviewViewProvider {
             color: var(--vscode-button-secondaryForeground);
             cursor: pointer;
             padding: 0;
-            margin-left: 2px;
-            font-size: 10px;
+            margin-left: var(--spacing-xs);
+            font-size: 12px;
             opacity: 0.7;
+            transition: opacity var(--transition-fast);
+            border-radius: 50%;
+            width: 16px;
+            height: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
           }
           
           .context-bubble .remove-btn:hover {
             opacity: 1;
+            background: rgba(255, 255, 255, 0.1);
           }
           
-          #clear-context {
-            margin-left: auto;
+          /* Input Field */
+          #user-input-editable {
+            flex: 1;
+            padding: var(--spacing-md);
+            font-size: 13px;
+            font-family: inherit;
+            background: var(--vscode-input-background);
+            color: var(--vscode-input-foreground);
+            border: 2px solid var(--vscode-input-border);
+            border-radius: var(--radius-lg);
+            min-height: 44px;
+            max-height: 120px;
+            overflow-y: auto;
+            outline: none;
+            resize: none;
+            word-wrap: break-word;
+            line-height: 1.5;
+            transition: all var(--transition-fast);
+            box-shadow: var(--shadow-sm);
           }
           
-          .file-ref {
+          #user-input-editable:focus {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(0, 122, 204, 0.1);
+            outline: none;
+          }
+          
+          #user-input-editable:empty:before {
+            content: attr(placeholder);
+            color: var(--vscode-input-placeholderForeground);
+            pointer-events: none;
+            opacity: 0.6;
+          }
+          
+          /* Send Button */
+          #send-btn {
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: var(--radius-lg);
+            padding: var(--spacing-sm) var(--spacing-lg);
+            font-size: 13px;
+            font-weight: var(--vscode-font-weight-semibold);
+            cursor: pointer;
+            transition: all var(--transition-fast);
+            box-shadow: var(--shadow-sm);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: var(--spacing-xs);
+            min-height: 36px;
+            align-self: center;
+          }
+          
+          #send-btn:hover {
+            background: var(--primary-hover);
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-md);
+          }
+          
+          #send-btn:active {
+            transform: translateY(0);
+            box-shadow: var(--shadow-sm);
+          }
+          
+          #send-btn:disabled {
+            background: var(--secondary-color);
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+          }
+          
+          /* Inline References */
+          .inline-ref, .file-ref {
             background: var(--vscode-badge-background);
             color: var(--vscode-badge-foreground);
             border: 1px solid var(--vscode-panel-border);
-            border-radius: 4px;
-            padding: 2px 6px;
-            margin: 0 2px;
+            border-radius: var(--radius-md);
+            padding: var(--spacing-xs) var(--spacing-sm);
+            margin: 0 var(--spacing-xs);
             font-size: 11px;
+            font-weight: var(--vscode-font-weight-medium);
             display: inline-flex;
             align-items: center;
             white-space: nowrap;
             user-select: none;
             cursor: default;
-            position: relative;
+            transition: all var(--transition-fast);
+            box-shadow: var(--shadow-sm);
           }
           
-          .file-ref .ref-text {
-            margin-right: 4px;
+          .inline-ref:hover, .file-ref:hover {
+            background: var(--vscode-button-secondaryHoverBackground);
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-md);
           }
           
-          .file-ref .remove-ref {
+          .inline-ref .remove-ref, .file-ref .remove-ref {
             background: none;
             border: none;
             color: var(--vscode-badge-foreground);
             cursor: pointer;
             padding: 0;
-            font-size: 10px;
+            margin-left: var(--spacing-sm);
+            font-size: 12px;
+            opacity: 0.7;
+            transition: opacity var(--transition-fast);
+            border-radius: 50%;
+            width: 14px;
+            height: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+          }
+          
+          .inline-ref .remove-ref:hover, .file-ref .remove-ref:hover {
+            opacity: 1;
+            background: rgba(255, 255, 255, 0.1);
+          }
+          
+          /* File Suggestions */
+          .file-suggestions {
+            position: fixed; /* Changed from absolute to fixed for better viewport handling */
+            background: var(--vscode-quickInput-background, var(--vscode-input-background));
+            border: 1px solid var(--vscode-quickInput-border, var(--vscode-input-border));
+            border-radius: 6px;
+            max-height: 240px;
+            overflow-y: auto;
+            z-index: 10000; /* Increased z-index */
+            min-width: 280px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+            backdrop-filter: blur(8px);
+            animation: dropdownSlideIn 0.2s ease-out;
+          }
+          
+          @keyframes dropdownSlideIn {
+            from {
+              opacity: 0;
+              transform: translateY(-8px);
+            }
+            to {
+              opacity: 1;
+              transform: translateY(0);
+            }
+          }
+          
+          .file-suggestions div {
+            padding: var(--spacing-md);
+            cursor: pointer;
+            font-size: 13px;
+            color: var(--vscode-foreground);
+            border-bottom: 1px solid var(--vscode-panel-border);
+            transition: all var(--transition-fast);
+            display: flex;
+            align-items: center;
+          }
+          
+          .file-suggestions div:last-child {
+            border-bottom: none;
+          }
+          
+          .file-suggestions div:hover {
+            background: var(--vscode-button-secondaryHoverBackground);
+            color: var(--vscode-button-secondaryForeground);
+          }
+          
+          .file-suggestions div .codicon {
+            margin-right: var(--spacing-sm);
             opacity: 0.7;
           }
           
-          .file-ref .remove-ref:hover {
-            opacity: 1;
+          /* Code blocks */
+          pre {
+            background: var(--vscode-textCodeBlock-background, #1e1e1e);
+            border: 1px solid var(--vscode-panel-border);
+            border-radius: var(--radius-md);
+            padding: var(--spacing-md);
+            overflow-x: auto;
+            font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, 'Courier New', monospace;
+            font-size: 12px;
+            line-height: 1.4;
+            margin: var(--spacing-sm) 0;
+          }
+          
+          code {
+            background: var(--vscode-textCodeBlock-background, #1e1e1e);
+            border: 1px solid var(--vscode-panel-border);
+            border-radius: var(--radius-sm);
+            padding: 2px 4px;
+            font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, 'Courier New', monospace;
+            font-size: 11px;
+          }
+          
+          /* Links */
+          a {
+            color: var(--vscode-textLink-foreground);
+            text-decoration: none;
+            transition: opacity var(--transition-fast);
+          }
+          
+          a:hover {
+            opacity: 0.8;
+            text-decoration: underline;
+          }
+          
+          /* Responsive design */
+          @media (max-width: 600px) {
+            #header {
+              padding: var(--spacing-md);
+            }
+            
+            #chat-container {
+              padding: var(--spacing-md);
+            }
+            
+            #input-row {
+              padding: var(--spacing-md);
+            }
+            
+            .message {
+              max-width: 95%;
+              margin-bottom: var(--spacing-md);
+            }
           }
         </style>
       </head>
       <body>
         <div id="header">
-          <label for="provider-select">Provider:</label>
+          <label for="provider-select">
+            Provider:
+          </label>
           <select id="provider-select">
             <option value="gpt"${
               currentProvider === 'gpt' ? ' selected' : ''
@@ -834,7 +1080,9 @@ class AIChatViewProvider implements vscode.WebviewViewProvider {
             <div id="context-bubbles" class="context-bubbles"></div>
             <div id="input-row">
               <div id="user-input-editable" contenteditable="true" placeholder="Type @ to add files or ask anything..."></div>
-              <button id="send-btn" class="btn btn-primary">Send</button>
+              <button id="send-btn">
+                Send
+              </button>
             </div>
           </div>
         </div>
@@ -1054,33 +1302,10 @@ class AIChatViewProvider implements vscode.WebviewViewProvider {
                 vscode.postMessage({ type: "requestFileSuggestions", query, cursorPos });
               } else if (text.trim() === '' || cursorPos === 0) {
                 // Handle empty input or cursor at beginning
-                console.log('Empty input or cursor at beginning, inserting file at start');
+                console.log('Empty input or cursor at beginning, showing all files');
                 
-                const currentSelection = window.getSelection();
-                if (currentSelection.rangeCount > 0) {
-                  const currentRange = currentSelection.getRangeAt(0);
-                  
-                  // Insert at the beginning or current cursor position
-                  if (userInput.childNodes.length === 0) {
-                    // Completely empty, just append
-                    userInput.appendChild(fileSpan);
-                  } else {
-                    // Insert at cursor position
-                    currentRange.insertNode(fileSpan);
-                    currentRange.setStartAfter(fileSpan);
-                    currentRange.setEndAfter(fileSpan);
-                    currentSelection.removeAllRanges();
-                    currentSelection.addRange(currentRange);
-                  }
-                } else {
-                  userInput.appendChild(fileSpan);
-                }
-                
-                // Focus input and add to context
-                userInput.focus();
-                vscode.postMessage({ type: "addFileToContext", filePath: file.path });
-                console.log('File reference inserted in empty input');
-                
+                // Show all files when input is empty
+                vscode.postMessage({ type: "requestFileSuggestions", query: "", cursorPos });
               } else {
                 console.log('No @ mention found and input not empty, cannot insert file');
               }
@@ -1276,6 +1501,58 @@ class AIChatViewProvider implements vscode.WebviewViewProvider {
             console.log('Current input text:', userInput.textContent);
             console.log('Input has children:', userInput.childNodes.length);
             
+            // Check if there's an @ mention to remove
+            const text = userInput.textContent;
+            const beforeCursor = text.substring(0, cursorPos);
+            const atMatch = beforeCursor.match(/@([^@\s]*)$/);
+            
+            let insertPosition = cursorPos;
+            
+            if (atMatch) {
+              console.log('Found @ mention to remove:', atMatch[0]);
+              
+              // Find and remove the @ mention from DOM
+              const walker = document.createTreeWalker(
+                userInput,
+                NodeFilter.SHOW_TEXT,
+                null,
+                false
+              );
+              
+              let charCount = 0;
+              let node;
+              let found = false;
+              
+              while ((node = walker.nextNode()) && !found) {
+                const nodeText = node.textContent;
+                const atIndex = nodeText.lastIndexOf('@');
+                
+                if (atIndex !== -1) {
+                  const atStart = charCount + atIndex;
+                  const atEnd = beforeCursor.length;
+                  
+                  if (atEnd > atStart) {
+                    // Found the @ mention in this node
+                    const beforeAt = nodeText.substring(0, atIndex);
+                    const afterAt = nodeText.substring(atIndex + (atEnd - atStart));
+                    
+                    // Update the text node
+                    node.textContent = beforeAt + afterAt;
+                    
+                    // Adjust insert position
+                    insertPosition = charCount + atIndex;
+                    
+                    found = true;
+                    console.log('@ mention removed from text node');
+                  }
+                }
+                
+                if (!found) {
+                  charCount += nodeText.length;
+                }
+              }
+            }
+            
             // Create the file reference element (uneditable like selection)
             const fileSpan = document.createElement('span');
             fileSpan.className = 'file-ref';
@@ -1303,7 +1580,7 @@ class AIChatViewProvider implements vscode.WebviewViewProvider {
             fileSpan.appendChild(fileText);
             fileSpan.appendChild(removeBtn);
             
-            // Get current selection
+            // Get current selection and insert at the adjusted position
             const currentSelection = window.getSelection();
             
             if (currentSelection.rangeCount > 0) {
@@ -1316,13 +1593,40 @@ class AIChatViewProvider implements vscode.WebviewViewProvider {
               }
               
               if (userInput.contains(container)) {
-                console.log('Inserting at cursor position');
-                // Insert at cursor position
-                currentRange.insertNode(fileSpan);
-                currentRange.setStartAfter(fileSpan);
-                currentRange.setEndAfter(fileSpan);
-                currentSelection.removeAllRanges();
-                currentSelection.addRange(currentRange);
+                console.log('Inserting at adjusted position:', insertPosition);
+                
+                // Find the correct insertion point
+                const textNodes = getTextNodes(userInput);
+                let charCount = 0;
+                let targetNode = null;
+                let targetOffset = 0;
+                
+                for (let node of textNodes) {
+                  if (charCount + node.textContent.length >= insertPosition) {
+                    targetNode = node;
+                    targetOffset = insertPosition - charCount;
+                    break;
+                  }
+                  charCount += node.textContent.length;
+                }
+                
+                if (targetNode) {
+                  const newRange = document.createRange();
+                  newRange.setStart(targetNode, targetOffset);
+                  newRange.setEnd(targetNode, targetOffset);
+                  newRange.insertNode(fileSpan);
+                  newRange.setStartAfter(fileSpan);
+                  newRange.setEndAfter(fileSpan);
+                  currentSelection.removeAllRanges();
+                  currentSelection.addRange(newRange);
+                } else {
+                  // Fallback: insert at cursor
+                  currentRange.insertNode(fileSpan);
+                  currentRange.setStartAfter(fileSpan);
+                  currentRange.setEndAfter(fileSpan);
+                  currentSelection.removeAllRanges();
+                  currentSelection.addRange(currentRange);
+                }
               } else {
                 console.log('Cursor not in input, appending to end');
                 // Cursor not in input, append to end
@@ -1389,15 +1693,17 @@ class AIChatViewProvider implements vscode.WebviewViewProvider {
             
             const suggestions = document.createElement('div');
             suggestions.className = 'file-suggestions';
-            suggestions.style.position = 'absolute';
-            suggestions.style.background = 'var(--vscode-menu-background)';
-            suggestions.style.border = '1px solid var(--vscode-menu-border)';
-            suggestions.style.borderRadius = '4px';
-            suggestions.style.maxHeight = '200px';
+            suggestions.style.position = 'fixed'; // Changed from absolute to fixed for better viewport handling
+            suggestions.style.background = 'var(--vscode-quickInput-background, var(--vscode-input-background))';
+            suggestions.style.border = '1px solid var(--vscode-quickInput-border, var(--vscode-input-border))';
+            suggestions.style.borderRadius = '6px';
+            suggestions.style.maxHeight = '240px';
             suggestions.style.overflowY = 'auto';
-            suggestions.style.zIndex = '1000';
-            suggestions.style.minWidth = '250px';
-            suggestions.style.boxShadow = '0 2px 8px rgba(0, 0, 0, 0.15)';
+            suggestions.style.zIndex = '10000'; // Increased z-index
+            suggestions.style.minWidth = '280px';
+            suggestions.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.25)';
+            suggestions.style.backdropFilter = 'blur(8px)';
+            suggestions.style.animation = 'dropdownSlideIn 0.2s ease-out';
             
             files.forEach(file => {
               const item = document.createElement('div');
@@ -1447,12 +1753,32 @@ class AIChatViewProvider implements vscode.WebviewViewProvider {
               suggestions.appendChild(item);
             });
             
-            // Position suggestions below the input
+            // Position suggestions below the input (or above if not enough space)
             const inputSection = document.getElementById('input-section');
             const rect = inputSection.getBoundingClientRect();
-            suggestions.style.top = (rect.bottom + 2) + 'px';
+            const viewportHeight = window.innerHeight;
+            const dropdownHeight = Math.min(200, files.length * 32); // Estimate dropdown height
+            
+            // Check if there's enough space below
+            const spaceBelow = viewportHeight - rect.bottom;
+            const spaceAbove = rect.top;
+            
+            let topPosition;
+            if (spaceBelow >= dropdownHeight) {
+              // Enough space below, position below input
+              topPosition = rect.bottom + 2;
+            } else if (spaceAbove >= dropdownHeight) {
+              // Not enough space below but enough above, position above input
+              topPosition = rect.top - dropdownHeight - 2;
+            } else {
+              // Not enough space in either direction, position below and let it scroll
+              topPosition = rect.bottom + 2;
+            }
+            
+            suggestions.style.top = topPosition + 'px';
             suggestions.style.left = rect.left + 'px';
             suggestions.style.width = rect.width + 'px';
+            suggestions.style.maxHeight = Math.min(200, spaceBelow - 10) + 'px';
             
             document.body.appendChild(suggestions);
             
