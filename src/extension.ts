@@ -279,6 +279,12 @@ class AIChatViewProvider implements vscode.WebviewViewProvider {
           '[selection]',
           `**${selectionContext.icon} ${selectionContext.name}**`
         );
+      } else {
+        // If no current selection, inform the user
+        fullMessage = fullMessage.replace(
+          '[selection]',
+          '**No selection found** - Please select some text first, or use the "Add Selection to Chat" command from the right-click menu.'
+        );
       }
     }
 
@@ -1301,13 +1307,12 @@ class AIChatViewProvider implements vscode.WebviewViewProvider {
                 const query = atMatch[1];
                 vscode.postMessage({ type: "requestFileSuggestions", query, cursorPos });
               } else if (text.trim() === '' || cursorPos === 0) {
-                // Handle empty input or cursor at beginning
-                console.log('Empty input or cursor at beginning, showing all files');
-                
-                // Show all files when input is empty
-                vscode.postMessage({ type: "requestFileSuggestions", query: "", cursorPos });
+                // Handle empty input or cursor at beginning - hide suggestions
+                console.log('Empty input or cursor at beginning, hiding suggestions');
+                hideFileSuggestions(); // Hide suggestions when input is empty
               } else {
-                console.log('No @ mention found and input not empty, cannot insert file');
+                console.log('No @ mention found and input not empty, hiding suggestions');
+                hideFileSuggestions(); // Hide suggestions when no @ mention is found
               }
             }
           }
@@ -1766,19 +1771,20 @@ class AIChatViewProvider implements vscode.WebviewViewProvider {
             let topPosition;
             if (spaceBelow >= dropdownHeight) {
               // Enough space below, position below input
-              topPosition = rect.bottom + 2;
+              topPosition = rect.bottom + 50; // Increased to 50px for more space
             } else if (spaceAbove >= dropdownHeight) {
               // Not enough space below but enough above, position above input
-              topPosition = rect.top - dropdownHeight - 2;
+              topPosition = rect.top - dropdownHeight - 40; // Increased to 50px for more space
             } else {
-              // Not enough space in either direction, position below and let it scroll
-              topPosition = rect.bottom + 2;
+              // Not enough space in either direction, position below
+              topPosition = rect.bottom + 50; // Increased to 50px for more space
             }
             
             suggestions.style.top = topPosition + 'px';
             suggestions.style.left = rect.left + 'px';
             suggestions.style.width = rect.width + 'px';
             suggestions.style.maxHeight = Math.min(200, spaceBelow - 10) + 'px';
+            suggestions.style.maxWidth = '400px'; // Limit width to prevent overflow
             
             document.body.appendChild(suggestions);
             
