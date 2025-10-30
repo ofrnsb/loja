@@ -352,7 +352,19 @@ class AIChatViewProvider implements vscode.WebviewViewProvider {
     if (resolvedReferences.length > 0) {
       const contextContent = resolvedReferences
         .map((item: any) => {
-          return `**${item.icon} ${item.name}:**\n\`\`\`\n${item.content}\n\`\`\``;
+          const extras: string[] = [];
+          if (item.extraContext) {
+            extras.push(
+              `Additional Context for ${item.name}:\n\n\`\`\`\n${item.extraContext}\n\`\`\``
+            );
+          }
+          if (item.overview) {
+            extras.push(
+              `Symbol Overview for ${item.name}:\n\n\`\`\`\n${item.overview}\n\`\`\``
+            );
+          }
+          const base = `**${item.icon} ${item.name}:**\n\`\`\`\n${item.content}\n\`\`\``;
+          return [base, ...extras].join('\n\n');
         })
         .join('\n\n');
       fullMessage = `**Context:**\n${contextContent}\n\n**Question:**\n${message.text}`;
@@ -914,7 +926,7 @@ class AIChatViewProvider implements vscode.WebviewViewProvider {
             padding: var(--spacing-xs) var(--spacing-sm);
             margin: 0 var(--spacing-xs);
             font-size: 11px;
-            font-weight: var(--vscode-font-weight-medium);
+            font-weight: var,--vscode-font-weight-medium);
             display: inline-flex;
             align-items: center;
             white-space: nowrap;
@@ -1947,11 +1959,99 @@ class AIChatViewProvider implements vscode.WebviewViewProvider {
     const startLine = selection.start.line + 1;
     const endLine = selection.end.line + 1;
 
+    // --- Added context extraction ---
+    const fullFileText = document.getText();
+    const lines = fullFileText.split(/\r?\n/);
+    const startIdx = selection.start.line; // 0-based
+    const endIdx = selection.end.line; // inclusive end line index consideration
+
+    // Surrounding lines (simple window)
+    const beforeWindow = Math.max(0, startIdx - 8);
+    const afterWindow = Math.min(lines.length, endIdx + 9);
+    const surroundingBefore = lines.slice(beforeWindow, startIdx).join('\n');
+    const surroundingAfter = lines.slice(endIdx, afterWindow).join('\n');
+
+    // Import / requires (top-of-file until first non-import block)
+    const importLines: string[] = [];
+    for (let i = 0; i < Math.min(lines.length, 300); i++) {
+      const l = lines[i].trim();
+      if (/^(import |from |#include |require\(|using )/.test(l)) {
+        importLines.push(lines[i]);
+        continue;
+      }
+      // Stop when real code appears (skip empty lines)
+      if (l !== '') break;
+    }
+
+    // Containing block (very lightweight heuristic)
+    let blockStart = -1;
+    for (let i = startIdx; i >= 0 && i >= startIdx - 150; i--) {
+      const l = lines[i];
+      if (
+        /^(\s*)(class |def |function |async function |interface |struct |public |private |protected ).*/.test(
+          l.trim()
+        )
+      ) {
+        blockStart = i;
+        break;
+      }
+    }
+    let blockText = '';
+    if (blockStart !== -1) {
+      // Capture until blank line + next top-level def/class or 120 lines max
+      const blockLines: string[] = [];
+      for (
+        let i = blockStart;
+        i < Math.min(lines.length, blockStart + 120);
+        i++
+      ) {
+        const l = lines[i];
+        blockLines.push(l);
+        if (
+          i > blockStart &&
+          /^(class |def |function |async function |interface |struct ).*/.test(
+            l.trim()
+          )
+        ) {
+          // Reached a new top-level definition after first line
+          break;
+        }
+        if (l.trim() === '' && i > startIdx) {
+          // Allow a blank line after passing selection end
+          break;
+        }
+      }
+      blockText = blockLines.join('\n');
+    }
+
+    // Assemble extra context (truncate if huge)
+    let extraParts: string[] = [];
+    if (importLines.length)
+      extraParts.push('// Imports\n' + importLines.join('\n'));
+    if (blockText) extraParts.push('// Containing Block\n' + blockText);
+    if (surroundingBefore || surroundingAfter) {
+      extraParts.push(
+        '// Surrounding Lines\n' +
+          (surroundingBefore ? surroundingBefore + '\n' : '') +
+          '/* <selection> */\n' +
+          selectedText +
+          '\n/* </selection> */' +
+          (surroundingAfter ? '\n' + surroundingAfter : '')
+      );
+    }
+    const combinedExtra = extraParts.join('\n\n');
+    const maxExtraLen = 2000;
+    const extraContext =
+      combinedExtra.length > maxExtraLen
+        ? combinedExtra.slice(0, maxExtraLen) + '\n... (context truncated)'
+        : combinedExtra;
+
     return {
       type: 'selection',
       name: `${fileName}:${startLine}-${endLine}`,
       fullName: `Selection from ${fileName} (lines ${startLine}-${endLine})`,
       content: selectedText,
+      extraContext, // newly added enriched context
       icon: '📝',
     };
   }
@@ -1967,11 +2067,27 @@ class AIChatViewProvider implements vscode.WebviewViewProvider {
     const relativePath = vscode.workspace.asRelativePath(document.fileName);
     const content = document.getText();
 
+    // Derive lightweight file context: list exported / declared symbols (simple regex heuristics)
+    const lines = content.split(/\r?\n/);
+    const symbolLines: string[] = [];
+    for (let i = 0; i < Math.min(lines.length, 800); i++) {
+      const l = lines[i].trim();
+      if (
+        /^(export |public |class |interface |type |def |function |async function |const |let |var ).{0,120}/.test(
+          l
+        )
+      ) {
+        symbolLines.push(lines[i]);
+      }
+    }
+    const symbolOverview = symbolLines.slice(0, 80).join('\n');
+
     return {
       type: 'file',
       name: fileName,
       fullName: relativePath,
       content: content,
+      overview: symbolOverview, // new
       icon: '📄',
     };
   }
